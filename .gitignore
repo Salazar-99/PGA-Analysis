@@ -1,4 +1,8 @@
 .ipynb_checkpoints/
 spark-warehouse/
-.env
 pga-venv/
+docs/_build/
+__pycache__/
+.*
+_SUCCESS
+data/__pycache__*
