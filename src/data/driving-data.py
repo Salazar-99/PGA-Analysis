@@ -12,4 +12,4 @@ query = "SELECT tournament, date, AVG(value) AS average_driving_distance\
          GROUP BY tournament, date\
          ORDER BY date ASC"
 data = spark.sql(query)
-utils.save_data(data, 'avg-driving-distance')
+utils.save_data(data, '/home/gerardo/Desktop/Projects/PGA-Analysis/data/driving-data')
