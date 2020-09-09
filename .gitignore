@@ -1,0 +1,4 @@
+.ipynb_checkpoints/
+spark-warehouse/
+.env
+pga-venv/
