@@ -2,11 +2,18 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 import matplotlib.pyplot as plt
 import pandas as pd
+import argparse
 from plotting import plot_posteriors
 
 #For convenience
 tfd = tfp.distributions
 tfb = tfp.bijectors
+
+#Argument parser 
+parser = argparse.ArgumentParser(description='Specify sampler parameters')
+parser.add_argument('--n_steps', type=int, help="Number of sampler steps")
+parser.add_argument('--n_burnin_steps', type=int, help="Number of steps to discard from initial part of sampler chain")
+args = parser.parse_args()
 
 #Gather and transform data
 data_path = '/home/gerardo/Desktop/Projects/PGA-Analysis/data/driving-data/driving-data.csv'
@@ -97,7 +104,7 @@ def sample(n_steps, n_burnin_steps, data, unnormalized_log_posterior):
     return posteriors
 
 #Run sampler
-posteriors = sample(n_steps=100, n_burnin_steps=10, data=data, unnormalized_log_posterior)
+posteriors = sample(n_steps=args.n_steps, n_burnin_steps=args.n_burnin_steps, data=data, unnormalized_log_posterior)
 
 #Plot/save posteriors
 figures_path = '/home/gerardo/Desktop/Projects/PGA-Analysis/reports/figures/driving-distance-posteriors.png'
