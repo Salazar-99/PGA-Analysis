@@ -3,7 +3,7 @@ import tensorflow_probability as tfp
 import matplotlib.pyplot as plt
 import pandas as pd
 import argparse
-from plotting import plot_posteriors
+from plotting import plot_and_save_posteriors
 
 #For convenience
 tfd = tfp.distributions
@@ -18,7 +18,7 @@ args = parser.parse_args()
 #Gather and transform data
 data_path = '/home/gerardo/Desktop/Projects/PGA-Analysis/data/driving-data/driving-data.csv'
 raw_data = pd.read_csv(data_path)
-data = tf.constant(data['average_driving_distance'].to_numpy(), dtype=tf.float32)
+data = tf.constant(raw_data['average_driving_distance'].to_numpy(), dtype=tf.float32)
 
 def joint_log_prob(data, mu_1, mu_2, tau, sd):
     """
@@ -35,21 +35,20 @@ def joint_log_prob(data, mu_1, mu_2, tau, sd):
         log_posterior (tf.Variable) - Log posterior of model
     """
     #Define probabilistic model
-    rv_mu_1 = tfd.Normal(loc=250, scale=25)
-    rv_mu_2 = tfd.Normal(loc=250, scale=25)
+    rv_mu_1 = tfd.Normal(loc=250., scale=25.)
+    rv_mu_2 = tfd.Normal(loc=250., scale=25.)
     rv_tau = tfd.Uniform(low=1, high=tf.shape(data)[-1])
-    rv_sd = tfd.Normal(loc=25, scale=10)
+    rv_sd = tfd.Normal(loc=25., scale=10.)
     mu = tf.gather([mu_1, mu_2], indices=tf.cast(tau*tf.cast(tf.size(data), dtype=tf.float32) <= 
                                          tf.cast(tf.range(tf.size(data)), dtype=tf.float32), dtype=tf.int32))
     rv_observations = tfd.Normal(loc=mu, scale=sd)
-    log_posterior = rv_mu_1.log_prob(mu_1)+
-                    rv_mu_2.log_prob(mus_2)+
+    log_posterior = (rv_mu_1.log_prob(mu_1)+
+                    rv_mu_2.log_prob(mu_2)+
                     rv_tau.log_prob(tau)+
                     rv_sd.log_prob(sd)+
-                    tf.reduce_sum(rv_observations.log_prob(data))
+                    tf.reduce_sum(rv_observations.log_prob(data)))
     return log_posterior
 
-#Closure over joint_log_prob
 def unnormalized_log_posterior(mu_1, mu_2, tau, sd):
     """
     Closure over joint_log_prob for use in sampler.
@@ -90,9 +89,9 @@ def sample(n_steps, n_burnin_steps, data, unnormalized_log_posterior):
                 state_gradients_are_stopped=True),
             bijector=unconstraining_bijectors)
     kernel = tfp.mcmc.SimpleStepSizeAdaptation(inner_kernel=kernel, 
-                                               num_adaptation_steps=int(n_burn_in_steps * 0.8))
+                                               num_adaptation_steps=int(n_burnin_steps * 0.8))
     #Sample chain
-    [mu_1_samples, mu_2_samples, tau_samples, sd_samples], kernel_results = sample_chain(num_results=n_steps, 
+    [mu_1_samples, mu_2_samples, tau_samples, sd_samples], kernel_results = tfp.mcmc.sample_chain(num_results=n_steps, 
                                                                                     num_burnin_steps=n_burnin_steps,
                                                                                     current_state=initial_chain_state,
                                                                                     kernel=kernel)
@@ -104,9 +103,12 @@ def sample(n_steps, n_burnin_steps, data, unnormalized_log_posterior):
     return posteriors
 
 #Run sampler
-posteriors = sample(n_steps=args.n_steps, n_burnin_steps=args.n_burnin_steps, data=data, unnormalized_log_posterior)
+posteriors = sample(n_steps=args.n_steps, 
+                    n_burnin_steps=args.n_burnin_steps, 
+                    data=data, 
+                    unnormalized_log_posterior=unnormalized_log_posterior)
 
 #Plot/save posteriors
-figures_path = '/home/gerardo/Desktop/Projects/PGA-Analysis/reports/figures/driving-distance-posteriors.png'
+figures_path = '/home/gerardo/Desktop/Projects/PGA-Analysis/reports/figures/driving-distance-tfp.png'
 plot_and_save_posteriors(posteriors, figures_path)
 
